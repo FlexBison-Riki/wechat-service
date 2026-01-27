@@ -1,0 +1,44 @@
+# Binaries
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+wechat-service
+server
+
+# Test binary
+*.test
+
+# Output of go coverage
+coverage.out
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+logs/
+*.log
+
+# Config
+config.yaml
+.env
+.env.local
+
+# Build artifacts
+*.out
+
+# Go workspace
+go.work
+
+# Temporary files
+*.tmp
+*.bak
