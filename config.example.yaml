@@ -27,7 +27,7 @@ redis:
   db: 0              # Redis database number
   pool_size: 10
 
-# Database Configuration (for future use)
+# Database Configuration (PostgreSQL)
 database:
   host: "localhost"
   port: 5432
@@ -35,6 +35,9 @@ database:
   password: ""
   name: "wechat_service"
   sslmode: "disable"
+  max_open_conns: 25
+  max_idle_conns: 5
+  conn_max_lifetime: 300  # seconds
 
 # Logging Configuration
 logging:

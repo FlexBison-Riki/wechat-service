@@ -2,61 +2,22 @@ package repository
 
 import (
 	"context"
-	"time"
 
 	"wechat-service/internal/model"
-	"wechat-service/pkg/cache"
 )
 
-// MessageRepository handles message data access
-type MessageRepository struct {
-	cache cache.Cache
-	ttl   time.Duration
+// MessageRepository interface defines message data operations
+type MessageRepository interface {
+	Save(ctx context.Context, msg *model.Message) error
+	GetByID(ctx context.Context, id int64) (*model.Message, error)
+	GetByMsgID(ctx context.Context, msgID int64) (*model.Message, error)
+	Exists(ctx context.Context, msgID int64) (bool, error)
+	ListByUser(ctx context.Context, openid string, limit, offset int) ([]*model.Message, error)
+	List(ctx context.Context, fromUser, msgType *string, startTime, endTime *time.Time, limit, offset int) ([]*model.Message, error)
+	Count(ctx context.Context) (int, error)
+	CountByUser(ctx context.Context, openid string) (int, error)
+	Delete(ctx context.Context, id int64) error
 }
 
-// NewMessageRepository creates a new MessageRepository
-func NewMessageRepository(cache cache.Cache) *MessageRepository {
-	return &MessageRepository{
-		cache: cache,
-		ttl:   30 * 24 * time.Hour,
-	}
-}
-
-// Save saves a message
-func (r *MessageRepository) Save(ctx context.Context, msg *model.Message) error {
-	key := "msg:" + fmt.Sprintf("%d", msg.MsgID)
-	return r.cache.Set(key, msg, r.ttl)
-}
-
-// FindByID finds a message by ID
-func (r *MessageRepository) FindByID(ctx context.Context, id int64) (*model.Message, error) {
-	key := "msg:" + fmt.Sprintf("%d", id)
-	data, err := r.cache.Get(key)
-	if err != nil {
-		return nil, ErrMessageNotFound
-	}
-	msg, ok := data.(*model.Message)
-	if !ok {
-		return nil, ErrMessageNotFound
-	}
-	return msg, nil
-}
-
-// ListByUser retrieves messages for a user (placeholder)
-func (r *MessageRepository) ListByUser(ctx context.Context, openid string, limit, offset int) ([]*model.Message, error) {
-	return nil, nil
-}
-
-// Delete removes a message
-func (r *MessageRepository) Delete(ctx context.Context, id int64) error {
-	key := "msg:" + fmt.Sprintf("%d", id)
-	return r.cache.Set(key, nil, 0)
-}
-
-// CountByUser returns message count for a user (placeholder)
-func (r *MessageRepository) CountByUser(ctx context.Context, openid string) (int, error) {
-	return 0, nil
-}
-
-// Custom errors
-var ErrMessageNotFound = &RepositoryError{Message: "message not found"}
+// Compile-time check that DBMsgRepository implements MessageRepository
+var _ MessageRepository = (*DBMsgRepository)(nil)
