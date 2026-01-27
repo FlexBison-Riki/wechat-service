@@ -184,20 +184,96 @@ nonce := req.URL.Query().Get("nonce")
 2. Configure callback URL in WeChat admin
 3. Test message flow
 
-## 8. Deployment Checklist
+## 8. Database Design
 
-- [ ] Server verification completed
-- [ ] Access token caching implemented
-- [ ] Message handler configured
-- [ ] OAuth2 flow working
-- [ ] Error handling in place
-- [ ] Logging configured
-- [ ] Rate limit handling implemented
-- [ ] Security measures (IP whitelist, encryption)
-- [ ] Monitoring and alerts set up
+### Schema Overview
+
+The project uses PostgreSQL with the following main tables:
+
+**users** - WeChat user profiles
+- `openid` (PK) - User's OpenID
+- `subscribe_status` - 0=unsubscribed, 1=subscribed
+- `tags` (JSONB) - User tags for segmentation
+- `location` - Latitude, longitude, precision
+
+**messages** - Message history
+- `msg_id` (Unique) - WeChat message ID
+- `from_user`, `to_user` - OpenIDs
+- `msg_type` - text, image, voice, video, event, etc.
+- `content` - Message text/media metadata
+
+**events** - User interaction events
+- `openid` - User who triggered event
+- `event_type` - subscribe, unsubscribe, SCAN, CLICK, LOCATION, etc.
+- `event_key` - Event context (menu key, scene value)
+
+### Key Design Decisions
+
+| Decision | Rationale |
+|----------|-----------|
+| **PostgreSQL** | JSONB support, mature, reliable |
+| **BigSerial IDs** | Auto-increment for internal IDs |
+| **BigInt msg_id** | WeChat's 64-bit message IDs |
+| **JSONB tags** | Flexible tag storage, queryable |
+| **Indexed queries** | Fast lookups by openid, time |
+
+### Repository Pattern
+
+```go
+// Interface-based design
+type UserRepository interface {
+    Save(ctx, user) error
+    GetByOpenID(ctx, openid) (*User, error)
+    Exists(ctx, openid) (bool, error)
+}
+
+// Implementation with cache + DB
+type DBUserRepository struct {
+    db    *Database
+    cache cache.Cache
+}
+
+// Transaction support
+db.WithTransaction(ctx, func(uow *UnitOfWork) error {
+    return uow.User("").Upsert(ctx, user)
+})
+```
+
+### Connection Pool
+
+```yaml
+database:
+  max_open_conns: 25
+  max_idle_conns: 5
+  conn_max_lifetime: 300  # seconds
+```
+
+## 9. Deployment Checklist
+
+### Pre-Deployment
+- [ ] WeChat server verification passed
+- [ ] Access token caching configured (Redis)
+- [ ] Message handler tested
+- [ ] OAuth2 flow verified
+- [ ] Database migrations run
+- [ ] Connection pool tested
+
+### Security
+- [ ] IP whitelist configured in WeChat
+- [ ] Message encryption enabled (optional)
+- [ ] Signature verification implemented
+- [ ] HTTPS enabled in production
+
+### Operations
+- [ ] Logging configured (file rotation)
+- [ ] Health check endpoint working
+- [ ] Graceful shutdown tested
+- [ ] Rate limit handling in place
+- [ ] Monitoring/alerts configured
 
 ## References
 
 - [Service Account Docs](https://developers.weixin.qq.com/doc/service/)
 - [API Reference](https://developers.weixin.qq.com/doc/subscription/dev/api/)
 - [SDK GoDocs](https://pkg.go.dev/github.com/silenceper/wechat/v2)
+- [PostgreSQL Documentation](https://www.postgresql.org/docs/)
