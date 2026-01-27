@@ -42,12 +42,15 @@ type RedisConfig struct {
 
 // DatabaseConfig holds database configuration
 type DatabaseConfig struct {
-	Host     string
-	Port     int
-	Username string
-	Password string
-	Name     string
-	SSLMode  string
+	Host            string
+	Port            int
+	Username        string
+	Password        string
+	Name            string
+	SSLMode         string
+	MaxOpenConns    int
+	MaxIdleConns    int
+	ConnMaxLifetime int // in seconds
 }
 
 // Load loads configuration from environment and config file
@@ -70,6 +73,11 @@ func Load() (*Config, error) {
 	v.Set("server.port", cast.ToInt(os.Getenv("SERVER_PORT")))
 	v.Set("redis.addr", os.Getenv("REDIS_ADDR"))
 	v.Set("redis.password", os.Getenv("REDIS_PASSWORD"))
+	v.Set("database.host", os.Getenv("DB_HOST"))
+	v.Set("database.port", cast.ToInt(os.Getenv("DB_PORT")))
+	v.Set("database.username", os.Getenv("DB_USER"))
+	v.Set("database.password", os.Getenv("DB_PASSWORD"))
+	v.Set("database.name", os.Getenv("DB_NAME"))
 	v.Set("wechat.appid", os.Getenv("WECHAT_APPID"))
 	v.Set("wechat.appsecret", os.Getenv("WECHAT_APPSECRET"))
 	v.Set("wechat.token", os.Getenv("WECHAT_TOKEN"))
