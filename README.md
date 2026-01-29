@@ -98,3 +98,4 @@ wechat-service/
 - [WeChat SDK (Go) Documentation](https://silenceper.com/wechat)
 - [SDK Examples](https://github.com/gowechat/example)
 - [Developer Guide](docs/developer-guide.md) - Comprehensive guide for building WeChat integrations
+- [API Reference](docs/api-reference.md) - Complete API documentation with endpoints, rate limits, and troubleshooting
