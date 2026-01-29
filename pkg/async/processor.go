@@ -2,6 +2,7 @@ package async
 
 import (
 	"context"
+	"errors"
 	"sync"
 	"time"
 
