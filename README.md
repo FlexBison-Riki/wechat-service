@@ -97,3 +97,4 @@ wechat-service/
 - [WeChat Developer Platform](https://developers.weixin.qq.com/platform/)
 - [WeChat SDK (Go) Documentation](https://silenceper.com/wechat)
 - [SDK Examples](https://github.com/gowechat/example)
+- [Developer Guide](docs/developer-guide.md) - Comprehensive guide for building WeChat integrations
