@@ -1,139 +1,148 @@
 package service
 
 import (
-	"context"
-	"encoding/json"
-	"fmt"
 	"time"
 
-	"wechat-service/internal/model"
-	"wechat-service/pkg/cache"
+	"wechat-service/internal/repository"
 	"wechat-service/pkg/logger"
+
+	"github.com/silenceper/wechat/v2/officialaccount/message"
 )
 
 // MessageService handles message business logic
 type MessageService struct {
-	cache  cache.Cache
-	logger *logger.Logger
-	prefix string
+	repo *repository.MessageRepository
+	log  *logger.Logger
 }
 
-// NewMessageService creates a new MessageService
-func NewMessageService(cache cache.Cache) *MessageService {
+// NewMessageService creates a new message service
+func NewMessageService(repo *repository.MessageRepository, log *logger.Logger) *MessageService {
 	return &MessageService{
-		cache:  cache,
-		logger: logger.New(),
-		prefix: "msg:",
+		repo: repo,
+		log:  log,
 	}
 }
 
-// Save saves a message to cache/database
-func (s *MessageService) Save(msg *model.Message) error {
-	key := s.prefix + fmt.Sprintf("msg:%d", msg.MsgID)
-	data, err := json.Marshal(msg)
-	if err != nil {
-		return fmt.Errorf("failed to marshal message: %w", err)
-	}
+// OnTextMessage handles text messages
+func (s *MessageService) OnTextMessage(msg *message.MixMessage) *message.Reply {
+	s.log.Debug("Processing text message", "content", msg.Content)
 
-	// Store for 30 days
-	if err := s.cache.Set(key, data, 30*24*time.Hour); err != nil {
-		return fmt.Errorf("failed to cache message: %w", err)
+	// Simple echo response
+	// In production, implement business logic here
+	return &message.Reply{
+		MsgType: message.MsgTypeText,
+		MsgData: &message.Text{
+			Content: msg.Content,
+		},
 	}
+}
 
-	// Add to user's message list
-	listKey := s.prefix + fmt.Sprintf("user:%s:msgs", msg.FromUser)
-	if err := s.addToList(listKey, msg.MsgID, 30*24*time.Hour); err != nil {
-		s.logger.Warnf("Failed to add to message list: %v", err)
+// OnImageMessage handles image messages
+func (s *MessageService) OnImageMessage(msg *message.MixMessage) *message.Reply {
+	s.log.Debug("Processing image message", "media_id", msg.MediaID)
+
+	// Echo image
+	return &message.Reply{
+		MsgType: message.MsgTypeImage,
+		MsgData: &message.Image{
+			MediaID: msg.MediaID,
+		},
 	}
+}
 
-	s.logger.Infof("Message saved: id=%d, type=%s", msg.MsgID, msg.MsgType)
+// OnVoiceMessage handles voice messages
+func (s *MessageService) OnVoiceMessage(msg *message.MixMessage) *message.Reply {
+	s.log.Debug("Processing voice message", "media_id", msg.MediaID)
 	return nil
 }
 
-// GetByID retrieves a message by ID
-func (s *MessageService) GetByID(id int64) (*model.Message, error) {
-	key := s.prefix + fmt.Sprintf("msg:%d", id)
-	data, err := s.cache.Get(key)
-	if err != nil {
-		return nil, fmt.Errorf("message not found: %d", id)
-	}
-
-	var msg model.Message
-	if err := json.Unmarshal(data.([]byte), &msg); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal message: %w", err)
-	}
-
-	return &msg, nil
-}
-
-// List retrieves messages for a user with pagination
-func (s *MessageService) List(openid string, limit, offset int) ([]*model.Message, error) {
-	if limit <= 0 || limit > 100 {
-		limit = 20
-	}
-
-	listKey := s.prefix + fmt.Sprintf("user:%s:msgs", openid)
-	ids, err := s.getListRange(listKey, offset, offset+limit-1)
-	if err != nil {
-		// Return empty list if no messages
-		return []*model.Message{}, nil
-	}
-
-	messages := make([]*model.Message, 0, len(ids))
-	for _, id := range ids {
-		msg, err := s.GetByID(id)
-		if err != nil {
-			s.logger.Warnf("Failed to get message %d: %v", id, err)
-			continue
-		}
-		messages = append(messages, msg)
-	}
-
-	return messages, nil
-}
-
-// Count returns the total number of messages for a user
-func (s *MessageService) Count(openid string) (int, error) {
-	listKey := s.prefix + fmt.Sprintf("user:%s:msgs", openid)
-	count, err := s.getListLength(listKey)
-	if err != nil {
-		return 0, err
-	}
-	return count, nil
-}
-
-// Delete removes a message
-func (s *MessageService) Delete(id int64) error {
-	key := s.prefix + fmt.Sprintf("msg:%d", id)
-	return s.cache.Set(key, nil, 0)
-}
-
-// addToList adds an ID to a sorted list
-func (s *MessageService) addToList(key string, id int64, ttl time.Duration) error {
-	// Use Redis sorted set with timestamp as score
-	score := float64(time.Now().UnixNano())
-	// For simplicity, using JSON string - in production, use Redis sorted set directly
-	return nil // Placeholder
-}
-
-// getListRange retrieves IDs from a list range
-func (s *MessageService) getListRange(key string, start, stop int) ([]int64, error) {
-	// Placeholder - in production, use Redis sorted set
-	return []int64{}, nil
-}
-
-// getListLength returns the length of a list
-func (s *MessageService) getListLength(key string) (int, error) {
-	// Placeholder - in production, use Redis
-	return 0, nil
-}
-
-// SaveBatch saves multiple messages
-func (s *MessageService) SaveBatch(ctx context.Context, messages []*model.Message) error {
-	for _, msg := range messages {
-		if err := s.Save(msg); err != nil {
-			return err
-		}
-	}
+// OnVideoMessage handles video messages
+func (s *MessageService) OnVideoMessage(msg *message.MixMessage) *message.Reply {
+	s.log.Debug("Processing video message", "media_id", msg.MediaID)
 	return nil
+}
+
+// OnLocationMessage handles location messages
+func (s *MessageService) OnLocationMessage(msg *message.MixMessage) *message.Reply {
+	s.log.Debug("Processing location message",
+		"x", msg.LocationX,
+		"y", msg.LocationY,
+		"label", msg.Label,
+	)
+	return nil
+}
+
+// OnLinkMessage handles link messages
+func (s *MessageService) OnLinkMessage(msg *message.MixMessage) *message.Reply {
+	s.log.Debug("Processing link message", "title", msg.Title)
+	return nil
+}
+
+// SaveMessage saves a message to repository
+func (s *MessageService) SaveMessage(msg *message.MixMessage) error {
+	if s.repo == nil {
+		return nil
+	}
+
+	repoMsg := &repository.Message{
+		MsgID:        msg.MsgID,
+		FromUser:     msg.FromUserName,
+		ToUser:       msg.ToUserName,
+		MsgType:      msg.MsgType,
+		Content:      msg.Content,
+		MediaID:      msg.MediaID,
+		PicURL:       msg.PicURL,
+		Format:       msg.Format,
+		ThumbMediaID: msg.ThumbMediaID,
+		LocationX:    msg.LocationX,
+		LocationY:    msg.LocationY,
+		Scale:        msg.Scale,
+		Label:        msg.Label,
+		Title:        msg.Title,
+		Description:  msg.Description,
+		URL:          msg.URL,
+		Event:        msg.Event,
+		EventKey:     msg.EventKey,
+		Ticket:       msg.Ticket,
+		Latitude:     msg.Latitude,
+		Longitude:    msg.Longitude,
+		Precision:    msg.Precision,
+		MsgDataID:    msg.MsgDataID,
+		Idx:          msg.Idx,
+		CreatedAt:    time.Now(),
+	}
+
+	return s.repo.Save(repoMsg)
+}
+
+// GetRecentMessages retrieves recent messages
+func (s *MessageService) GetRecentMessages(limit int) ([]*repository.Message, error) {
+	if s.repo == nil {
+		return nil, nil
+	}
+	return s.repo.GetRecent(limit)
+}
+
+// GetMessageStats returns message statistics
+func (s *MessageService) GetMessageStats() map[string]int {
+	if s.repo == nil {
+		return nil
+	}
+
+	stats := make(map[string]int)
+	types := []string{
+		message.MsgTypeText,
+		message.MsgTypeImage,
+		message.MsgTypeVoice,
+		message.MsgTypeVideo,
+		message.MsgTypeLocation,
+		message.MsgTypeLink,
+	}
+
+	for _, msgType := range types {
+		stats[msgType] = s.repo.CountByType(msgType)
+	}
+
+	stats["total"] = s.repo.Count()
+	return stats
 }
