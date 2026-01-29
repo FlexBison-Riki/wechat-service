@@ -3,52 +3,48 @@ package repository
 import (
 	"sync"
 	"time"
-
-	"wechat-service/pkg/logger"
 )
 
 // Message represents a WeChat message
 type Message struct {
-	ID          int64     `json:"id"`
-	MsgID       int64     `json:"msg_id"`
-	FromUser    string    `json:"from_user"`
-	ToUser      string    `json:"to_user"`
-	MsgType     string    `json:"msg_type"`
-	Content     string    `json:"content"`
-	MediaID     string    `json:"media_id"`
-	PicURL      string    `json:"pic_url"`
-	Format      string    `json:"format"`
-	ThumbMediaID string   `json:"thumb_media_id"`
-	LocationX   float64   `json:"location_x"`
-	LocationY   float64   `json:"location_y"`
-	Scale       int       `json:"scale"`
-	Label       string    `json:"label"`
-	Title       string    `json:"title"`
-	Description string    `json:"description"`
-	URL         string    `json:"url"`
-	Event       string    `json:"event"`
-	EventKey    string    `json:"event_key"`
-	Ticket      string    `json:"ticket"`
-	Latitude    float64   `json:"latitude"`
-	Longitude   float64   `json:"longitude"`
-	Precision   float64   `json:"precision"`
-	MsgDataID   int       `json:"msg_data_id"`
-	Idx         int       `json:"idx"`
-	CreatedAt   time.Time `json:"created_at"`
+	ID           int64     `json:"id"`
+	MsgID        int64     `json:"msg_id"`
+	FromUser     string    `json:"from_user"`
+	ToUser       string    `json:"to_user"`
+	MsgType      string    `json:"msg_type"`
+	Content      string    `json:"content"`
+	MediaID      string    `json:"media_id"`
+	PicURL       string    `json:"pic_url"`
+	Format       string    `json:"format"`
+	ThumbMediaID string    `json:"thumb_media_id"`
+	LocationX    float64   `json:"location_x"`
+	LocationY    float64   `json:"location_y"`
+	Scale        int       `json:"scale"`
+	Label        string    `json:"label"`
+	Title        string    `json:"title"`
+	Description  string    `json:"description"`
+	URL          string    `json:"url"`
+	Event        string    `json:"event"`
+	EventKey     string    `json:"event_key"`
+	Ticket       string    `json:"ticket"`
+	Latitude     float64   `json:"latitude"`
+	Longitude    float64   `json:"longitude"`
+	Precision    float64   `json:"precision"`
+	MsgDataID    int       `json:"msg_data_id"`
+	Idx          int       `json:"idx"`
+	CreatedAt    time.Time `json:"created_at"`
 }
 
 // MessageRepository handles message data storage
 type MessageRepository struct {
-	mu      sync.RWMutex
+	mu       sync.RWMutex
 	messages map[int64]*Message
-	log     *logger.Logger
 }
 
 // NewMessageRepository creates a new message repository
 func NewMessageRepository() *MessageRepository {
 	return &MessageRepository{
 		messages: make(map[int64]*Message),
-		log:      logger.NewLogger("info"),
 	}
 }
 
@@ -72,7 +68,6 @@ func (r *MessageRepository) Create(msg *Message) error {
 	msg.CreatedAt = time.Now()
 	r.messages[msg.MsgID] = msg
 
-	r.log.Debug("Message created", "msg_id", msg.MsgID, "msg_type", msg.MsgType)
 	return nil
 }
 
@@ -93,7 +88,6 @@ func (r *MessageRepository) Delete(msgID int64) error {
 	defer r.mu.Unlock()
 
 	delete(r.messages, msgID)
-	r.log.Debug("Message deleted", "msg_id", msgID)
 	return nil
 }
 
@@ -147,7 +141,7 @@ func (r *MessageRepository) GetRecent(limit int) ([]*Message, error) {
 		msgs = append(msgs, msg)
 	}
 
-	// Sort by created_at desc (simple bubble sort for small sets)
+	// Sort by created_at desc
 	for i := 0; i < len(msgs); i++ {
 		for j := i + 1; j < len(msgs); j++ {
 			if msgs[j].CreatedAt.After(msgs[i].CreatedAt) {
@@ -196,6 +190,5 @@ func (r *MessageRepository) DeleteOld(olderThan time.Duration) error {
 		}
 	}
 
-	r.log.Info("Old messages cleaned up", "older_than", olderThan)
 	return nil
 }

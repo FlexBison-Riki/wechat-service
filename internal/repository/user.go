@@ -3,8 +3,6 @@ package repository
 import (
 	"sync"
 	"time"
-
-	"wechat-service/pkg/logger"
 )
 
 // User represents a WeChat user
@@ -28,16 +26,14 @@ type User struct {
 
 // UserRepository handles user data storage
 type UserRepository struct {
-	mu     sync.RWMutex
-	users  map[string]*User
-	log    *logger.Logger
+	mu    sync.RWMutex
+	users map[string]*User
 }
 
 // NewUserRepository creates a new user repository
 func NewUserRepository() *UserRepository {
 	return &UserRepository{
 		users: make(map[string]*User),
-		log:   logger.NewLogger("info"),
 	}
 }
 
@@ -62,7 +58,6 @@ func (r *UserRepository) Create(user *User) error {
 	user.UpdatedAt = time.Now()
 	r.users[user.OpenID] = user
 
-	r.log.Debug("User created", "openid", user.OpenID)
 	return nil
 }
 
@@ -77,7 +72,6 @@ func (r *UserRepository) Update(user *User) error {
 	}
 	r.users[user.OpenID] = user
 
-	r.log.Debug("User updated", "openid", user.OpenID)
 	return nil
 }
 
@@ -103,7 +97,6 @@ func (r *UserRepository) Delete(openid string) error {
 	defer r.mu.Unlock()
 
 	delete(r.users, openid)
-	r.log.Debug("User deleted", "openid", openid)
 	return nil
 }
 
